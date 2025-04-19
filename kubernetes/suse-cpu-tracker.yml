@@ -1,0 +1,36 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: gputrackers.suse.tests.dev
+spec:
+  group: suse.tests.dev
+  names:
+    kind: GPUTracker
+    listKind: GPUTrackerList
+    plural: gputrackers
+    singular: gputracker
+    shortNames:
+    - gputkr
+  scope: Cluster
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: GPUTracker is the Schema for keeping track of number of GPU nodes in a cluster
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info:
+              https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          metadata:
+            type: object
+          gpu_nodes:
+            description: Comma separated list of GPU nodes
+            type: string
+          required:
+          - gpu_nodes
+          type: object
+    served: true
+    storage: true
