@@ -1,5 +1,0 @@
-apiVersion: suse.tests.dev/v1
-kind: GPUTracker
-gpu_nodes: suse-ai
-metadata:
-  name: suse-cpu-tracker
