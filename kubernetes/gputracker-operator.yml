@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gputracker-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gputracker-operator
+  template:
+        metadata:
+          labels:
+            app: gputracker-operator
+        spec:
+          containers:
+          - name: gputracker-operator
+            image: gputracker-operator:v1
+            imagePullPolicy: Never
