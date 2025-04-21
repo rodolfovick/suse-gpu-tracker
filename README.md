@@ -89,3 +89,5 @@ The following tests were covered during development:
 - Modify an existing node, adding node-type equals to gpu-node.
 - Modify an existing node, removing node-type equals to gpu-node.
 
+**For testing, there is a PyTest script called test_gputracker.py that can be used to validate the test cases above.**
+
