@@ -1,0 +1,3 @@
+SUSE GPU Tracker: manage nodes with node-type equals to gpu-node. 
+This package will install a CRD file for suse-gpu-tracker and start a deployment for the gpu-tracker operator.
+Dependency: gputracker-operator docker image created locally.
