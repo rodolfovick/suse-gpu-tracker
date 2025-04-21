@@ -43,6 +43,10 @@ def __removeGpuNode(list, name):
 
 
 def __create(name, namespace, logger):
+    """
+    Manage the creation of nodes with node-type equals to gpu-node.
+    """
+
     dynamicClient = kubernetes.dynamic.DynamicClient(kubernetes.client.ApiClient())
     resource = dynamicClient.resources.get(api_version='suse.tests.dev/v1', kind='GPUTracker')
     objectList = resource.get(namespace=namespace)
@@ -85,6 +89,10 @@ def update_new_fn(spec, name, namespace, logger, **kwargs):
 
 
 def __delete(name, namespace, logger):
+    """
+    Manage the deletion of nodes with node-type equals to gpu-node.
+    """
+        
     dynamicClient = kubernetes.dynamic.DynamicClient(kubernetes.client.ApiClient())
     resource = dynamicClient.resources.get(api_version='suse.tests.dev/v1', kind='GPUTracker')
     object = resource.get(name=GPU_TRACKER_NAME, namespace=namespace)
