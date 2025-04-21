@@ -39,15 +39,10 @@ def __removeGpuNode(list, name):
     return ', '.join(gpuNodesList)
 
 
-@kopf.on.create('Node', labels={'node-type': 'gpu-node'})
-def create_fn(spec, name, namespace, logger, **kwargs):
-    """
-    Handle new Nodes with node-type equals to gpu-node. If no suse-gpu-tracker obj 
-    is created, create a new one. Otherwise, just add the new gpu-node to the list.
-    """
+### Create functions ###
 
-    logger.info(f'::: CREATE NAME {name}')
 
+def __create(name, namespace, logger):
     dynamicClient = kubernetes.dynamic.DynamicClient(kubernetes.client.ApiClient())
     resource = dynamicClient.resources.get(api_version='suse.tests.dev/v1', kind='GPUTracker')
     objectList = resource.get(namespace=namespace)
@@ -62,6 +57,17 @@ def create_fn(spec, name, namespace, logger, **kwargs):
         object = resource.patch(body={'gpu_nodes': gpuNodes}, name=GPU_TRACKER_NAME, 
                        namespace=namespace, content_type='application/merge-patch+json')
         logger.info(f"GPU Tracker updated (create): {object}")
+
+
+@kopf.on.create('Node', labels={'node-type': 'gpu-node'})
+def create_fn(spec, name, namespace, logger, **kwargs):
+    """
+    Handle new Nodes with node-type equals to gpu-node. If no suse-gpu-tracker obj 
+    is created, create a new one. Otherwise, just add the new gpu-node to the list.
+    """
+
+    logger.info(f'::: CREATE NAME {name}')
+    __create(name, namespace, logger)
 
 
 @kopf.on.update('Node', field='metadata.labels.node-type', new='gpu-node')
@@ -72,21 +78,25 @@ def update_new_fn(spec, name, namespace, logger, **kwargs):
     """
 
     logger.info(f'::: UPDATE NEW NAME {name}')
+    __create(name, namespace, logger)
 
+
+### Delete functions ###
+
+
+def __delete(name, namespace, logger):
     dynamicClient = kubernetes.dynamic.DynamicClient(kubernetes.client.ApiClient())
     resource = dynamicClient.resources.get(api_version='suse.tests.dev/v1', kind='GPUTracker')
-    objectList = resource.get(namespace=namespace)
+    object = resource.get(name=GPU_TRACKER_NAME, namespace=namespace)
+    gpuNodes = __removeGpuNode(object.gpu_nodes, name)
 
-    if not objectList.items:
-        data = __newGpuTracker(name)
-        object = resource.create(body=data, namespace=namespace)
-        logger.info(f"GPU Tracker created: {object}")
+    if not gpuNodes:
+        resource.delete(name=GPU_TRACKER_NAME, namespace=namespace)
+        logger.info(f"GPU Tracker deleted: {object}")
     else:
-        object = resource.get(name=GPU_TRACKER_NAME, namespace=namespace)
-        gpuNodes = __addGpuNode(object.gpu_nodes, name)
         object = resource.patch(body={'gpu_nodes': gpuNodes}, name=GPU_TRACKER_NAME, 
-                       namespace=namespace, content_type='application/merge-patch+json')
-        logger.info(f"GPU Tracker updated (create): {object}")
+                                namespace=namespace, content_type='application/merge-patch+json')
+        logger.info(f"GPU Tracker updated (delete): {object}") 
 
 
 @kopf.on.delete('Node', labels={'node-type': 'gpu-node'})
@@ -97,19 +107,7 @@ def delete_fn(spec, name, namespace, logger, **kwargs):
     """
 
     logger.info(f'::: DELETE NAME {name}')
-
-    dynamicClient = kubernetes.dynamic.DynamicClient(kubernetes.client.ApiClient())
-    resource = dynamicClient.resources.get(api_version='suse.tests.dev/v1', kind='GPUTracker')
-    object = resource.get(name=GPU_TRACKER_NAME, namespace=namespace)
-    gpuNodes = __removeGpuNode(object.gpu_nodes, name)
-
-    if not gpuNodes:
-        resource.delete(name=GPU_TRACKER_NAME, namespace=namespace)
-        logger.info(f"GPU Tracker deleted: {object}")
-    else:
-        object = resource.patch(body={'gpu_nodes': gpuNodes}, name=GPU_TRACKER_NAME, 
-                                namespace=namespace, content_type='application/merge-patch+json')
-        logger.info(f"GPU Tracker updated (delete): {object}")
+    __delete(name, namespace, logger)
 
 
 @kopf.on.update('Node', field='metadata.labels.node-type', old='gpu-node')
@@ -119,17 +117,5 @@ def update_old_fn(spec, name, namespace, logger, **kwargs):
     suse-gpu-tracker, just remove from list. Otherwise, delete suse-gpu-tracker.
     """
 
-    logger.info(f'::: UPDATE NAME {name}')
-
-    dynamicClient = kubernetes.dynamic.DynamicClient(kubernetes.client.ApiClient())
-    resource = dynamicClient.resources.get(api_version='suse.tests.dev/v1', kind='GPUTracker')
-    object = resource.get(name=GPU_TRACKER_NAME, namespace=namespace)
-    gpuNodes = __removeGpuNode(object.gpu_nodes, name)
-
-    if not gpuNodes:
-        resource.delete(name=GPU_TRACKER_NAME, namespace=namespace)
-        logger.info(f"GPU Tracker deleted: {object}")
-    else:
-        object = resource.patch(body={'gpu_nodes': gpuNodes}, name=GPU_TRACKER_NAME, 
-                                namespace=namespace, content_type='application/merge-patch+json')
-        logger.info(f"GPU Tracker updated (delete): {object}")
+    logger.info(f'::: UPDATE OLD NAME {name}')
+    __delete(name, namespace, logger)
