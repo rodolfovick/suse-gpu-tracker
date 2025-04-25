@@ -66,7 +66,7 @@ def patch_simple_node(name, client):
     }
 
     api = client.resources.get(api_version="v1", kind="Node")
-    api.patch(name=name, body=data, namespace='default')
+    api.patch(name=name, body=data, namespace='default', type='json')
     sleep(1)
 
 
