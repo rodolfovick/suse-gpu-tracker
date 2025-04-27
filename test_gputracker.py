@@ -146,6 +146,7 @@ def test_patch_one_node():
     - patches it to add gpu-node;
     - patches it to remove gpu-node;
     - patches it to add gpu-node;
+    - patches it to remove gpu-node;
     - finally, delete the node;
     """
     
@@ -172,3 +173,59 @@ def test_patch_one_node():
     assert not gpu_node_list
 
     delete_gpu_node(name)
+
+
+def test_patch_multiple_node():
+    """
+    test_patch_multiple_node: validate the patch of 10 nodes. This test: 
+    - creates a node without gpu-node;
+    - patches it to add gpu-node;
+    - patches it to remove gpu-node;
+    - patches it to add gpu-node;
+    - patches it to remove gpu-node;
+    - finally, delete the node;
+    """
+
+    for i in range(0, 10):
+        name = 'gpu-ai-' + str(i)
+        create_simple_node(name)
+        gpu_node_list = get_node_list()
+        assert not gpu_node_list
+
+    for i in range(0, 10):
+        name = 'gpu-ai-' + str(i)
+        patch_gpu_node(name)
+        gpu_nodes = get_gpu_nodes()
+        assert name in gpu_nodes
+
+    for i in range(0, 9):
+        name = 'gpu-ai-' + str(i)
+        patch_simple_node(name)
+        gpu_nodes = get_gpu_nodes()
+        assert name not in gpu_nodes
+
+    name = 'gpu-ai-9'
+    patch_simple_node(name)
+    gpu_node_list = get_node_list()
+    assert not gpu_node_list
+
+    for i in range(0, 10):
+        name = 'gpu-ai-' + str(i)
+        patch_gpu_node(name)
+        gpu_nodes = get_gpu_nodes()
+        assert name in gpu_nodes
+
+    for i in range(0, 9):
+        name = 'gpu-ai-' + str(i)
+        patch_simple_node(name)
+        gpu_nodes = get_gpu_nodes()
+        assert name not in gpu_nodes
+
+    name = 'gpu-ai-9'
+    patch_simple_node(name)
+    gpu_node_list = get_node_list()
+    assert not gpu_node_list
+
+    for i in range(0, 10):
+        name = 'gpu-ai-' + str(i)
+        delete_gpu_node(name)
