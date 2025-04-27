@@ -1,3 +1,4 @@
+import subprocess
 from kubernetes import config, dynamic
 from kubernetes.client import api_client
 from kubernetes.client.api import core_v1_api
@@ -97,7 +98,44 @@ def get_node_list():
     return list.items
 
 
+def get_node_present(name):
+    client = dynamic.DynamicClient(
+        api_client.ApiClient(configuration=config.load_kube_config())
+    )
+    api = client.resources.get(api_version="v1", kind="Node")
+
+    found = False
+    for node in api.get().items:
+        if node.metadata.name == name:
+            found = True
+            break
+
+    return found
+
+
 ### ------------------------------------------------------------------------------------ ###
+
+
+def test_install_helm():
+    """
+    test_install_helm: check if a gpu-node node created before helm chart install updates
+    the list of gpu-nodes.
+    """
+
+    name = 'gpu-ai'
+
+    create_gpu_node(name)
+    assert get_node_present(name)
+
+    subprocess.run(["helm", "install", "suse-gpu-tracker", "./kubernetes/suse-gpu-tracker/"])
+    sleep(10)
+
+    gpu_nodes = get_gpu_nodes()
+    assert name in gpu_nodes
+
+    delete_gpu_node(name)
+    gpu_node_list = get_node_list()
+    assert not gpu_node_list
 
 
 def test_one_node():
@@ -229,3 +267,23 @@ def test_patch_multiple_node():
     for i in range(0, 10):
         name = 'gpu-ai-' + str(i)
         delete_gpu_node(name)
+
+
+def test_uninstall_helm():
+    """
+    test_uninstall_helm: 
+    """
+
+    name = 'gpu-ai'
+
+    create_gpu_node(name)
+    gpu_nodes = get_gpu_nodes()
+    assert name in gpu_nodes
+    
+    subprocess.run(["helm", "uninstall", "suse-gpu-tracker"])
+    sleep(10)
+
+    assert get_node_present(name)
+
+    # delete_gpu_node(name)
+    # assert not get_node_present(name)
