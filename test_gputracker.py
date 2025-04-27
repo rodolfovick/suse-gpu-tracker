@@ -1,9 +1,10 @@
 from kubernetes import config, dynamic
 from kubernetes.client import api_client
+from kubernetes.client.api import core_v1_api
 
 from time import sleep
 
-def create_gpu_node(name, client):
+def create_gpu_node(name):
     data = {
         'apiVersion': 'v1',
         'kind': 'Node',
@@ -20,12 +21,13 @@ def create_gpu_node(name, client):
     data['metadata']['labels']['name'] = name
     data['metadata']['labels']['node-type'] = 'gpu-node'
 
-    api = client.resources.get(api_version="v1", kind="Node")
-    api.create(body=data, namespace='default')
+    client = api_client.ApiClient(configuration=config.load_kube_config())
+    api = core_v1_api.CoreV1Api(client)
+    api.create_node(body=data)
     sleep(1)
 
 
-def create_simple_node(name, client):
+def create_simple_node(name):
     data = {
         'apiVersion': 'v1',
         'kind': 'Node',
@@ -40,12 +42,13 @@ def create_simple_node(name, client):
     data['metadata']['name'] = name
     data['metadata']['labels']['name'] = name
 
-    api = client.resources.get(api_version="v1", kind="Node")
-    api.create(body=data, namespace='default')
+    client = api_client.ApiClient(configuration=config.load_kube_config())
+    api = core_v1_api.CoreV1Api(client)
+    api.create_node(body=data)
     sleep(1)
 
 
-def patch_gpu_node(name, client):
+def patch_gpu_node(name):
     data = {
         'metadata': {
             'labels': {
@@ -54,35 +57,41 @@ def patch_gpu_node(name, client):
         }
     }
 
-    api = client.resources.get(api_version="v1", kind="Node")
-    api.patch(name=name, body=data, namespace='default')
+    client = api_client.ApiClient(configuration=config.load_kube_config())
+    api = core_v1_api.CoreV1Api(client)
+    api.patch_node(name=name, body=data)
     sleep(1)
 
 
-def patch_simple_node(name, client):
-    data = {
-        "op": "remove", 
-        "path": "/metadata/labels/node-type"
-    }
+def patch_simple_node(name):
+    data = [{ "op": "remove", "path": "/metadata/labels/node-type"}]
 
-    api = client.resources.get(api_version="v1", kind="Node")
-    api.patch(name=name, body=data, namespace='default', type='json')
+    client = api_client.ApiClient(configuration=config.load_kube_config())
+    api = core_v1_api.CoreV1Api(client)
+    api.patch_node(name=name, body=data)
     sleep(1)
 
 
-def delete_gpu_node(name, client):
-    api = client.resources.get(api_version="v1", kind="Node")
-    api.delete(name=name, namespace='default')
+def delete_gpu_node(name):
+    client = api_client.ApiClient(configuration=config.load_kube_config())
+    api = core_v1_api.CoreV1Api(client)
+    api.delete_node(name=name)
     sleep(1)
 
 
-def get_gpu_nodes(client):
+def get_gpu_nodes():
+    client = dynamic.DynamicClient(
+        api_client.ApiClient(configuration=config.load_kube_config())
+    )
     api = client.resources.get(api_version='suse.tests.dev/v1', kind='GPUTracker')
     gt = api.get(name='suse-gpu-tracker', namespace='default')
     return gt.gpu_nodes.split(', ')
 
 
-def get_node_list(client):
+def get_node_list():
+    client = dynamic.DynamicClient(
+        api_client.ApiClient(configuration=config.load_kube_config())
+    )
     api = client.resources.get(api_version='suse.tests.dev/v1', kind='GPUTracker')
     list = api.get(namespace='default')
     return list.items
@@ -92,68 +101,57 @@ def get_node_list(client):
 
 
 def test_one_node():
-    client = dynamic.DynamicClient(
-        api_client.ApiClient(configuration=config.load_kube_config())
-    )
-
     name = 'gpu-ai'
 
-    create_gpu_node(name, client)
-    gpu_nodes = get_gpu_nodes(client)
+    create_gpu_node(name)
+    gpu_nodes = get_gpu_nodes()
     assert name in gpu_nodes
 
-    delete_gpu_node(name, client)
-    gpu_node_list = get_node_list(client)
+    delete_gpu_node(name)
+    gpu_node_list = get_node_list()
     assert not gpu_node_list
 
-def test_multiple_node():
-    client = dynamic.DynamicClient(
-        api_client.ApiClient(configuration=config.load_kube_config())
-    )
 
+def test_multiple_node():
     for i in range(0, 10):
         name = 'gpu-ai-' + str(i)
-        create_gpu_node(name, client)
-        gpu_nodes = get_gpu_nodes(client)
+        create_gpu_node(name)
+        gpu_nodes = get_gpu_nodes()
         assert name in gpu_nodes
 
     for i in range(0, 9):
         name = 'gpu-ai-' + str(i)
-        delete_gpu_node(name, client)
-        gpu_nodes = get_gpu_nodes(client)
+        delete_gpu_node(name)
+        gpu_nodes = get_gpu_nodes()
         assert name not in gpu_nodes
 
     name = 'gpu-ai-9'
-    delete_gpu_node(name, client)
-    gpu_node_list = get_node_list(client)
+    delete_gpu_node(name)
+    gpu_node_list = get_node_list()
     assert not gpu_node_list
 
 
-def __test_patch_one_node():
-    client = dynamic.DynamicClient(
-        api_client.ApiClient(configuration=config.load_kube_config())
-    )
-
+def test_patch_one_node():
     name = 'gpu-ai'
-    create_simple_node(name, client)
 
-    gpu_node_list = get_node_list(client)
+    create_simple_node(name)
+    gpu_node_list = get_node_list()
     assert not gpu_node_list
 
-    patch_gpu_node(name, client)
-    gpu_nodes = get_gpu_nodes(client)
+    patch_gpu_node(name)
+    gpu_nodes = get_gpu_nodes()
     assert name in gpu_nodes
 
-    patch_simple_node(name, client)
-    gpu_node_list = get_node_list(client)
+    patch_simple_node(name)
+    gpu_node_list = get_node_list()
     assert not gpu_node_list
 
-    patch_gpu_node(name, client)
-    gpu_nodes = get_gpu_nodes(client)
+    patch_gpu_node(name)
+    gpu_nodes = get_gpu_nodes()
     assert name in gpu_nodes
 
-    patch_simple_node(name, client)
-    gpu_node_list = get_node_list(client)
+    patch_simple_node(name)
+    gpu_node_list = get_node_list()
     assert not gpu_node_list
 
-    delete_gpu_node(name, client)
+    delete_gpu_node(name, )
