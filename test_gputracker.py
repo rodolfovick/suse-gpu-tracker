@@ -101,6 +101,10 @@ def get_node_list():
 
 
 def test_one_node():
+    """
+    test_one_node: validate the create and delete of a gpu-node node.
+    """
+
     name = 'gpu-ai'
 
     create_gpu_node(name)
@@ -113,6 +117,10 @@ def test_one_node():
 
 
 def test_multiple_node():
+    """
+    test_multiple_node: validate the create and delete of ten gpu-node node.
+    """
+
     for i in range(0, 10):
         name = 'gpu-ai-' + str(i)
         create_gpu_node(name)
@@ -132,6 +140,15 @@ def test_multiple_node():
 
 
 def test_patch_one_node():
+    """
+    test_patch_one_node: validate the patch of a node. This test: 
+    - creates a node without gpu-node;
+    - patches it to add gpu-node;
+    - patches it to remove gpu-node;
+    - patches it to add gpu-node;
+    - finally, delete the node;
+    """
+    
     name = 'gpu-ai'
 
     create_simple_node(name)
@@ -154,4 +171,4 @@ def test_patch_one_node():
     gpu_node_list = get_node_list()
     assert not gpu_node_list
 
-    delete_gpu_node(name, )
+    delete_gpu_node(name)
